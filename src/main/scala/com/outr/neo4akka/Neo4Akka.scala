@@ -7,7 +7,6 @@ import akka.http.scaladsl.model.headers._
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
-import com.outr.neo4akka.ServiceRoot
 import org.json4s.jackson.Serialization
 
 import scala.concurrent.ExecutionContext.Implicits.global
