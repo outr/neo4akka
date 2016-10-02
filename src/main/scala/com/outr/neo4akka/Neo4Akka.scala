@@ -13,6 +13,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import upickle.default
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 object Neo4Akka {
   def apply(host: String, port: Int, username: String, password: String): Future[Neo4Akka] = {
@@ -52,6 +53,8 @@ class Neo4Akka private(root: ServiceRoot, headers: List[HttpHeader], flow: Flow[
                       (implicit system: ActorSystem, materializer: ActorMaterializer) {
   implicit val formats = org.json4s.DefaultFormats
 
+  def apply(query: CypherQuery): Future[String] = apply(query.query, query.args.map(t => t._1 -> t._2.jsonValue))
+
   def apply(query: String, params: Map[String, Any]): Future[String] = {
     val jsonMap = Map(
       "query" -> query,
@@ -60,9 +63,10 @@ class Neo4Akka private(root: ServiceRoot, headers: List[HttpHeader], flow: Flow[
     val json = Serialization.write(jsonMap)
     val entity = HttpEntity(ContentTypes.`application/json`, ByteString(json))
     val responseFuture = Source.single(HttpRequest(uri = root.cypher, headers = headers, method = HttpMethods.POST, entity = entity)).via(flow).runWith(Sink.head)
-    responseFuture.map { response =>
-      val data = new String(response.entity.asInstanceOf[HttpEntity.Strict].data.toArray)
-      data
+    responseFuture.flatMap { response =>
+      response.entity.toStrict(15.seconds).map { e =>
+        new String(e.data.toArray)
+      }
     }
   }
 
