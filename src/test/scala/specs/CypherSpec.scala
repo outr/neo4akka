@@ -10,6 +10,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class CypherSpec extends WordSpec with Matchers {
   "Cypher" should {
+    val sessionFuture = Neo4Akka("localhost", 7474, "neo4j", "password")
+
     "interpolate a valid query" in {
       val q = cypher"MATCH (p: Person) RETURN p"
       q should not be null
@@ -29,61 +31,87 @@ class CypherSpec extends WordSpec with Matchers {
     "execute a query against a local neo4j instance" in {
       val personName = "Tom Hanks"
       val query = cypher"MATCH (p: Person {name: $personName}) RETURN p"
-      val r = Neo4Akka("localhost", 7474, "neo4j", "password").flatMap { session =>
-        val f = session(query)
-        f.onComplete { result =>
-          session.dispose()
-        }
-        f
+      val r = sessionFuture.flatMap { session =>
+        session(query)
       }
-      val response = Await.result(r, Duration.Inf)
-      response.columns should be(List("p"))
-      response.data.length should be(1)
-      response.data.head.length should be(1)
-      val entry = response.data.head.head
-      entry.metaData.labels should be(List("Person"))
-      entry.data should be(Map("name" -> "Tom Hanks", "born" -> 1956))
+      val resultSet = Await.result(r, Duration.Inf)
+      resultSet.results.length should be(1)
+      val people = resultSet("p").objectResults
+      people.size should be(1)
+      people.head.data should be(Map("name" -> "Tom Hanks", "born" -> 1956))
+    }
+    "execute a query for a specific value" in {
+      val personName = "Tom Hanks"
+      val query = cypher"MATCH (p: Person {name: $personName}) RETURN p.name"
+      val r = sessionFuture.flatMap { session =>
+        session(query)
+      }
+      val resultSet = Await.result(r, Duration.Inf)
+      val names = resultSet("p.name").fieldResults[String]
+      names.size should be(1)
+      names.head.data should be("Tom Hanks")
+    }
+    "execute a query for two specific values and an object" in {
+      val personName = "Tom Hanks"
+      val query = cypher"MATCH (p: Person {name: $personName}) RETURN p.name, p.born, p"
+      val r = sessionFuture.flatMap { session =>
+        session(query)
+      }
+      val resultSet = Await.result(r, Duration.Inf)
+      val names = resultSet("p.name").fieldResults[String]
+      val born = resultSet("p.born").fieldResults[Int]
+      val people = resultSet("p").objectResults
+      names.size should be(1)
+      names.head.data should be("Tom Hanks")
+      born.size should be(1)
+      born.head.data should be(1956)
+      people.size should be(1)
+      people.head.data should be(Map("name" -> "Tom Hanks", "born" -> 1956))
     }
     "create a person 'John Doe'" in {
       val name = "John Doe"
       val born = 1901
       val query = cypher"CREATE (p: Person { name: $name, born: $born }) RETURN p"
-      val r = Neo4Akka("localhost", 7474, "neo4j", "password").flatMap { session =>
-        val f = session(query)
-        f.onComplete { result =>
-          session.dispose()
-        }
-        f
+      val r = sessionFuture.flatMap { session =>
+        session(query)
       }
       val result = Await.result(r, Duration.Inf)
-      result shouldNot be("")
+      result("p").objectResults.head.data should be(Map("name" -> name, "born" -> born))
     }
     "query the person 'John Doe'" in {
       val name = "John Doe"
       val query = cypher"MATCH (p: Person { name: $name }) RETURN p"
-      val r = Neo4Akka("localhost", 7474, "neo4j", "password").flatMap { session =>
-        val f = session(query)
-        f.onComplete { result =>
-          session.dispose()
-        }
-        f
+      val r = sessionFuture.flatMap { session =>
+        session(query)
       }
-      val result = Await.result(r, Duration.Inf)
-      val p = result[Person]("p")
-      p should be(Vector(Person("John Doe", 1901)))
+      val resultSet = Await.result(r, Duration.Inf)
+      val people = resultSet("p")[Person]
+      people should be(Vector(Person("John Doe", 1901)))
     }
     "delete the person 'John Doe'" in {
       val name = "John Doe"
       val query = cypher"MATCH (p: Person { name: $name }) DELETE p"
-      val r = Neo4Akka("localhost", 7474, "neo4j", "password").flatMap { session =>
-        val f = session(query)
-        f.onComplete { result =>
-          session.dispose()
-        }
-        f
+      val r = sessionFuture.flatMap { session =>
+        session(query)
       }
-      val result = Await.result(r, Duration.Inf)
-      result shouldNot be("")
+      Await.result(r, Duration.Inf)
+    }
+    "query multiple movie titles from the 1990s" in {
+      try {
+        val year = 1990
+        val query = cypher"MATCH (movie: Movie) WHERE movie.released > $year AND movie.released < 2000 RETURN movie.title LIMIT 3"
+        val request = sessionFuture.flatMap { session =>
+          session(query)
+        }
+        val resultSet = Await.result(request, Duration.Inf)
+        val titles = resultSet("movie.title").fieldResults[String].map(_.data)
+        titles should be(Vector("The Matrix", "The Devil's Advocate", "A Few Good Men"))
+      } catch {
+        case t: Throwable => t.printStackTrace()
+      }
+    }
+    "dispose the session" in {
+      sessionFuture.map(_.dispose())
     }
   }
 }

@@ -15,9 +15,10 @@ import rapture.json._
 import rapture.json.jsonBackends.jackson._
 import formatters.compact._
 
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
-
 import scala.language.experimental.macros
 
 object Neo4Akka {
@@ -77,36 +78,38 @@ object Neo4Akka {
     case null => Json.empty
   }
 
+  private[neo4akka] def convertJson(json: Json): Any = json.$normalize match {
+    case n: JsonNode => if (n.isBigDecimal) {
+      n.asDouble()
+    } else if (n.isBigInteger) {
+      n.asInt()
+    } else if (n.isBoolean) {
+      n.asBoolean()
+    } else if (n.isDouble) {
+      n.asDouble()
+    } else if (n.isInt) {
+      n.asInt()
+    } else if (n.isLong) {
+      n.asLong()
+    } else if (n.isNull) {
+      null
+    } else if (n.isTextual) {
+      n.asText()
+    }
+  }
+
   private[neo4akka] def convertMap(map: Map[String, Json]): Map[String, Any] = {
     map.map {
-      case (key, value) => key -> (value.$normalize match {
-        case n: JsonNode => if (n.isBigDecimal) {
-          n.asDouble()
-        } else if (n.isBigInteger) {
-          n.asInt()
-        } else if (n.isBoolean) {
-          n.asBoolean()
-        } else if (n.isDouble) {
-          n.asDouble()
-        } else if (n.isInt) {
-          n.asInt()
-        } else if (n.isLong) {
-          n.asLong()
-        } else if (n.isNull) {
-          null
-        } else if (n.isTextual) {
-          n.asText()
-        }
-      })
+      case (key, value) => key -> convertJson(value)
     }
   }
 }
 
 class Neo4Akka private(root: ServiceRoot, headers: List[HttpHeader], flow: Flow[HttpRequest, HttpResponse, Future[Http.OutgoingConnection]])
                       (implicit system: ActorSystem, materializer: ActorMaterializer) {
-  def apply(query: CypherQuery): Future[QueryResponse] = apply(query.query, query.args.map(t => t._1 -> t._2.jsonValue))
+  def apply(query: CypherQuery): Future[ResultSet] = apply(query.query, query.args.map(t => t._1 -> t._2.jsonValue))
 
-  def apply(query: String, params: Map[String, Any]): Future[QueryResponse] = {
+  def apply(query: String, params: Map[String, Any]): Future[ResultSet] = {
     val jsonParams = params.map {
       case (key, value) => key -> Neo4Akka.convertValue(value)
     }
@@ -119,19 +122,31 @@ class Neo4Akka private(root: ServiceRoot, headers: List[HttpHeader], flow: Flow[
     responseFuture.flatMap { response =>
       response.entity.toStrict(15.seconds).map { e =>
         val jsonString = new String(e.data.toArray)
-
         val json = Json.parse(jsonString)
-        QueryResponse(
-          columns = json.columns.as[Vector[String]],
-          data = json.data.as[Array[Array[Json]]].map { group =>
-            group.map { entry =>
-              DataEntry(
-                metaData = MetaData(entry.metadata.id.as[Int], entry.metadata.labels.as[List[String]]),
-                data = Neo4Akka.convertMap(entry.data.as[Map[String, Json]])
-              )
-            }.toVector
-          }.toVector
-        )
+        val columns = json.columns.as[Vector[String]]
+        val rows = json.data.as[Vector[Vector[Json]]]
+        val dataMap = columns.map(c => c -> ListBuffer.empty[Result]).toMap
+        rows.foreach { row =>
+          row.zipWithIndex.foreach {
+            case (columnJson, index) => {
+              val dataEntry: Result = columnJson.metadata.as[Option[Json]] match {
+                case Some(md) => {
+                  val metaData = MetaData(md.id.as[Int], md.labels.as[List[String]])
+                  val data = Neo4Akka.convertMap(columnJson.data.as[Map[String, Json]])
+                  ObjectResult(metaData, data)
+                }
+                case None => {
+                  val data = Neo4Akka.convertJson(columnJson)
+                  FieldResult(data)
+                }
+              }
+              dataMap(columns(index)) += dataEntry
+            }
+          }
+        }
+        ResultSet(dataMap.map {
+          case (column, results) => ColumnResults(column, results.toVector)
+        }.toVector)
       }
     }
   }
@@ -141,11 +156,3 @@ class Neo4Akka private(root: ServiceRoot, headers: List[HttpHeader], flow: Flow[
     system.terminate()
   }
 }
-
-case class QueryResponse(columns: Vector[String], data: Vector[Vector[DataEntry]]) {
-  def apply[T](key: String): Vector[T] = macro Macros.convert[T]
-}
-
-case class DataEntry(metaData: MetaData, data: Map[String, Any])
-
-case class MetaData(id: Int, labels: List[String])
