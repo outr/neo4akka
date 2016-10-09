@@ -7,11 +7,10 @@ At its core this client will attempt to be a very clean and representative clien
 
 ## Status
 
-Still very early development, but it is usable, albeit somewhat less useful than the ultimate intent. However, since we currently
-have the capacity to validate interpolated cypher queries at compile-time, it's already a leg-up on every other Scala Neo4j framework
-that exists.
+Fully functional API that supports the majority of use-cases but ongoing development is still happening to make it more
+useful and convenient.
 
-## Features
+## Features for 1.0.0
 
 * [X] Asynchronous, true non-blocking IO with Akka HTTP
 * [X] Cypher String Interpolator
@@ -19,8 +18,15 @@ that exists.
 * [X] Cypher Query Parser via Macro on Interpolation at compile-time
 * [X] Structured QueryResponse
 * [X] Macro support for extracting case class from QueryResponse
-* [ ] Cypher Query Parser generates mapping to case classes for true compile-time query and result validation and mapping
+
+## Features for 1.1.0
+* [ ] Insert and update from case class into database
+* [ ] Transactions
+* [ ] Practical Pagination support
 
 ## Documentation
 
 In desperate need of help. For now just look at the tests until we can get the first release finished.
+
+## Setup
+

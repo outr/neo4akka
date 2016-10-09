@@ -1,6 +1,8 @@
 name := "neo4akka"
 
-version := "1.0.0-SNAPSHOT"
+organization := "com.outr"
+
+version := "1.0.0"
 
 scalaVersion := "2.11.8"
 
@@ -8,7 +10,7 @@ sbtVersion := "0.13.11"
 
 fork := true
 
-libraryDependencies += "com.typesafe.akka" %% "akka-http-core" % "2.4.7"
+libraryDependencies += "com.typesafe.akka" %% "akka-http-core" % "2.4.11"
 
 libraryDependencies += "com.propensive" %% "rapture-json-jackson" % "2.0.0-M7"
 
