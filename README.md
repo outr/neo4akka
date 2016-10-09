@@ -5,7 +5,7 @@
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/outr/neo4akka)
 [![Maven Central](https://img.shields.io/maven-central/v/com.outr/neo4akka_2.11.svg)](https://maven-badges.herokuapp.com/maven-central/com.outr/neo4akka_2.11)
 
-Neo4j client using Akka-Http
+Neo4j client for Scala using Akka-Http
 
 All existing Scala clients try to be too clever adding obfuscation on top of the communication, creating a limiting DSL, or not using true non-blocking communication.
 
