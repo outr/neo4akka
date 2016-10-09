@@ -18,6 +18,8 @@ import formatters.compact._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
+import scala.language.experimental.macros
+
 object Neo4Akka {
   def apply(host: String, port: Int, username: String, password: String): Future[Neo4Akka] = {
     implicit val system = ActorSystem()
@@ -120,7 +122,7 @@ class Neo4Akka private(root: ServiceRoot, headers: List[HttpHeader], flow: Flow[
 
         val json = Json.parse(jsonString)
         QueryResponse(
-          columns = json.columns.as[List[String]],
+          columns = json.columns.as[Vector[String]],
           data = json.data.as[Array[Array[Json]]].map { group =>
             group.map { entry =>
               DataEntry(
@@ -140,7 +142,9 @@ class Neo4Akka private(root: ServiceRoot, headers: List[HttpHeader], flow: Flow[
   }
 }
 
-case class QueryResponse(columns: List[String], data: Vector[Vector[DataEntry]])
+case class QueryResponse(columns: Vector[String], data: Vector[Vector[DataEntry]]) {
+  def apply[T](key: String): Vector[T] = macro Macros.convert[T]
+}
 
 case class DataEntry(metaData: MetaData, data: Map[String, Any])
 

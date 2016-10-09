@@ -42,7 +42,6 @@ class CypherSpec extends WordSpec with Matchers {
       response.data.head.length should be(1)
       val entry = response.data.head.head
       entry.metaData.labels should be(List("Person"))
-      println(entry.data("born").getClass)
       entry.data should be(Map("name" -> "Tom Hanks", "born" -> 1956))
     }
     "create a person 'John Doe'" in {
@@ -57,8 +56,21 @@ class CypherSpec extends WordSpec with Matchers {
         f
       }
       val result = Await.result(r, Duration.Inf)
-      println(result)
       result shouldNot be("")
+    }
+    "query the person 'John Doe'" in {
+      val name = "John Doe"
+      val query = cypher"MATCH (p: Person { name: $name }) RETURN p"
+      val r = Neo4Akka("localhost", 7474, "neo4j", "password").flatMap { session =>
+        val f = session(query)
+        f.onComplete { result =>
+          session.dispose()
+        }
+        f
+      }
+      val result = Await.result(r, Duration.Inf)
+      val p = result[Person]("p")
+      p should be(Vector(Person("John Doe", 1901)))
     }
     "delete the person 'John Doe'" in {
       val name = "John Doe"
@@ -71,8 +83,9 @@ class CypherSpec extends WordSpec with Matchers {
         f
       }
       val result = Await.result(r, Duration.Inf)
-      println(result)
       result shouldNot be("")
     }
   }
 }
+
+case class Person(name: String, born: Int)

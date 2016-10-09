@@ -18,7 +18,7 @@ that exists.
 * [X] Cypher Query Parser
 * [X] Cypher Query Parser via Macro on Interpolation at compile-time
 * [X] Structured QueryResponse
-* [ ] Macro support for extracting case class from QueryResponse
+* [X] Macro support for extracting case class from QueryResponse
 * [ ] Cypher Query Parser generates mapping to case classes for true compile-time query and result validation and mapping
 
 ## Documentation

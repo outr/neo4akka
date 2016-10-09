@@ -36,4 +36,21 @@ object Macros {
       case _ => c.abort(c.enclosingPosition, "Bad usage of cypher interpolation 2.")
     }
   }
+
+  def convert[T](c: blackbox.Context)(key: c.Expr[String])(implicit t: c.WeakTypeTag[T]): c.Expr[Vector[T]] = {
+    import c.universe._
+
+    val qr = c.prefix.tree
+    val tpe = weakTypeOf[T]
+    val members = tpe.decls
+    val fields = members.filter(s => s.asTerm.isVal && s.asTerm.isCaseAccessor)
+    val fieldNames = fields.map(_.name.decodedName.toString.trim)
+    val fieldTypes = fields.map(_.info)
+    val dataIndex = q"$qr.columns.indexOf($key)"
+    val conversion = fieldNames.zip(fieldTypes).map {
+      case (fieldName, fieldType) => q"""de.data($fieldName).asInstanceOf[$fieldType]"""
+    }
+    val items = q"$qr.data($dataIndex).map(de => new $t(..$conversion))"
+    c.Expr[Vector[T]](items)
+  }
 }
