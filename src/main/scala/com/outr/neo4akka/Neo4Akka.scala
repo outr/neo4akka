@@ -8,18 +8,15 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.{BigIntegerNode, TextNode}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import rapture.json._
 import rapture.json.jsonBackends.jackson._
 import formatters.compact._
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.language.experimental.macros
 
 object Neo4Akka {
   def apply(host: String, port: Int, username: String, password: String): Future[Neo4Akka] = {

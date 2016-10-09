@@ -1,5 +1,7 @@
 package com.outr.neo4akka
 
+import scala.language.experimental.macros
+
 case class ColumnResults(column: String, data: Vector[Result]) {
   def apply[T]: Vector[T] = macro Macros.convert[T]
   def objectResults: Vector[ObjectResult] = data.asInstanceOf[Vector[ObjectResult]]

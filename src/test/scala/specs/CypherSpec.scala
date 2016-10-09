@@ -97,18 +97,28 @@ class CypherSpec extends WordSpec with Matchers {
       Await.result(r, Duration.Inf)
     }
     "query multiple movie titles from the 1990s" in {
-      try {
-        val year = 1990
-        val query = cypher"MATCH (movie: Movie) WHERE movie.released > $year AND movie.released < 2000 RETURN movie.title LIMIT 3"
-        val request = sessionFuture.flatMap { session =>
-          session(query)
-        }
-        val resultSet = Await.result(request, Duration.Inf)
-        val titles = resultSet("movie.title").fieldResults[String].map(_.data)
-        titles should be(Vector("The Matrix", "The Devil's Advocate", "A Few Good Men"))
-      } catch {
-        case t: Throwable => t.printStackTrace()
+      val year = 1990
+      val query = cypher"MATCH (movie: Movie) WHERE movie.released > $year AND movie.released < 2000 RETURN movie.title LIMIT 3"
+      val request = sessionFuture.flatMap { session =>
+        session(query)
       }
+      val resultSet = Await.result(request, Duration.Inf)
+      val titles = resultSet("movie.title").fieldResults[String].map(_.data)
+      titles should be(Vector("The Matrix", "The Devil's Advocate", "A Few Good Men"))
+    }
+    "query 'Tom Hanks' and three oldest movies he acted in" in {
+      val name = "Tom Hanks"
+      val query = cypher"MATCH (people: Person { name: $name })-[:ACTED_IN]->(movies: Movie) RETURN people, movies ORDER BY movies.released LIMIT 3"
+      val request = sessionFuture.flatMap { session =>
+        session(query)
+      }
+      val resultSet = Await.result(request, Duration.Inf)
+      val people = resultSet("people")[Person]
+      people.size should be(1)
+      people.head should be(Person("Tom Hanks", 1956))
+      val movies = resultSet("movies")[Movie]
+      movies.size should be(3)
+      movies.map(_.title) should be(Vector("Joe Versus the Volcano", "A League of Their Own", "Sleepless in Seattle"))
     }
     "dispose the session" in {
       sessionFuture.map(_.dispose())
@@ -117,3 +127,5 @@ class CypherSpec extends WordSpec with Matchers {
 }
 
 case class Person(name: String, born: Int)
+
+case class Movie(title: String, tagline: String, released: Int)
