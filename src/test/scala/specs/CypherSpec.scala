@@ -10,7 +10,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class CypherSpec extends WordSpec with Matchers {
   "Cypher" should {
-    val sessionFuture = Neo4Akka("localhost", 7474, "neo4j", "password")
+    val password = if (System.getenv("TRAVIS") == "true") {
+      "neo4j"
+    } else {
+      "password"
+    }
+    val sessionFuture = Neo4Akka("localhost", 7474, "neo4j", password)
 
     "interpolate a valid query" in {
       val q = cypher"MATCH (p: Person) RETURN p"
