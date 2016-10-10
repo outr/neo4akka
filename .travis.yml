@@ -4,8 +4,6 @@ scala:
   - 2.11.8
 jdk:
   - oraclejdk8
-services:
-  - neo4j
 cache:
   directories:
     - $HOME/.ivy2/cache
