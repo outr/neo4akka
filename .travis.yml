@@ -11,13 +11,8 @@ cache:
 before_cache:
   - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
   - find $HOME/.sbt -name "*.lock" -delete
-env:
-  - NEO4J_VERSION="3.0.6"
 before_install:
-  - "bin/rake neo4j:install[$NEO4J_VERSION] --trace"
-  - "bin/rake neo4j:config[development,7474] --trace"
-  - "echo 'dbms.memory.pagecache.size=600m' >> ./db/neo4j/development/conf/neo4j.conf"
-  - "echo 'dbms.memory.heap.max_size=600' >> ./db/neo4j/development/conf/neo4j-wrapper.conf"
-  - "echo 'dbms.memory.heap.initial_size=600' >> ./db/neo4j/development/conf/neo4j-wrapper.conf"
-  - "bin/rake neo4j:start --trace"
-  - "sleep 20"
+  # install Neo4j locally:
+  - wget dist.neo4j.org/neo4j-community-3.0.6-unix.tar.gz
+  - tar -xzf neo4j-community-3.0.6-unix.tar.gz
+  - neo4j-community-3.0.6/bin/neo4j start
