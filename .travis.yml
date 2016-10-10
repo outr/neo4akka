@@ -13,3 +13,10 @@ cache:
 before_cache:
   - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
   - find $HOME/.sbt -name "*.lock" -delete
+env:
+  - NEO4J_VERSION="3.0.6"
+before_install:
+    # install Neo4j locally:
+    - wget dist.neo4j.org/neo4j-community-$NEO4J_VERSION-unix.tar.gz
+    - tar -xzf neo4j-community-$NEO4J_VERSION-unix.tar.gz
+    - neo4j-community-$NEO4J_VERSION/bin/neo4j start
