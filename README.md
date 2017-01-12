@@ -1,5 +1,6 @@
 # neo4akka
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/43729f4be7514d6e82c27a9495ab296d)](https://www.codacy.com/app/matthicks/neo4akka?utm_source=github.com&utm_medium=referral&utm_content=outr/neo4akka&utm_campaign=badger)
 [![Build Status](https://travis-ci.org/outr/neo4akka.svg?branch=master)](https://travis-ci.org/outr/neo4akka)
 [![Stories in Ready](https://badge.waffle.io/outr/neo4akka.png?label=ready&title=Ready)](https://waffle.io/outr/neo4akka)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/outr/neo4akka)
