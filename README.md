@@ -40,7 +40,7 @@ In desperate need of help. For now just look at the tests until we can get the f
 neo4akka is published to Sonatype OSS and Maven Central and supports JVM with 2.11 and 2.12:
 
 ```
-libraryDependencies += "com.outr" %% "neo4akka" % "1.0.0"
+libraryDependencies += "com.outr" %% "neo4akka" % "1.0.1"
 ```
 
 ## Using
